@@ -1,0 +1,124 @@
+#!/usr/bin/perl
+# the above is the standard linux/unix path for perl: change if your computer is nonstandard
+sub print_help {
+    print STDERR <<EOF;
+
+Syntax:  loop [option]
+    do several pattern3sub.x calculations in
+Options: 
+-a       : do only analysis, no computations
+-c       : do only computation of trajectories, no analysis
+-Z Z_0 Z_max  : incremental sequence of Z
+-C charge  : Z-N
+-h	 : print this help
+NB:
+    The computation part requires $bindir$code for proper runs
+    		(last revision by Pietro Torta - 5 Apr 2016)
+EOF
+    return;
+}
+
+#			DEFAULTS:
+$code="hartree-fock";
+$bindir="./";
+$inputscheme="input_scheme";
+$Z_0=1;	
+$Z_MAX=10;	
+$charge=0;
+$TINY=1.e-13;
+$docalc=1;
+$doanal=1;
+$allfile="alldata.dat";
+
+while($p=shift(@ARGV)){
+    if($p=~/^[^\-]/){ # all command line arguments are options and should stard with "-", unless they are the argument of an option
+	print_help;
+	die "unknown option $p\n";
+    }
+    if($p eq "-a"){ # do only analysis
+        $docalc=0;
+        $doanal=1;
+        next;
+    }
+    if($p eq "-c"){ # do only computation of trajectory files
+        $docalc=1;
+        $doanal=0;
+        next;
+    }
+    if($p eq "-Z"){ # stepwise increase
+		$Z_0=shift(@ARGV);
+		$Z_MAX=shift(@ARGV);
+		next;
+    }
+    if($p eq "-C"){ # stepwise increase
+		$charge=shift(@ARGV);
+		next;
+    }
+    print_help;
+    die "invalid option $p\n";
+}
+
+	
+if($doanal){
+    if(-e $allfile){`cat $allfile >> $allfile~`};        # store old info!
+    open(VCM,">$allfile") || die "Cannot create $allfile\n";
+}
+
+if($docalc){ # do the actual calculation:
+# store all the inputscheme at the beginning, so that it may be safely changed:
+    $input="";
+    open(INPUT,"$inputscheme") || die "Cannot open $inputscheme\n";
+    foreach(<INPUT>){$input = $input.$_;}
+    close(INPUT);  
+}
+
+for($Z=$Z_0;$Z<=$Z_MAX;$Z++){
+    $N=$Z-$charge;
+    &onecalculation;
+}
+
+if($doanal){
+    close(VCM);
+}
+# end of main
+
+
+sub onecalculation{
+
+    $label="Z".$Z."_N".$N;
+    $infile="in.tmp.".$label;
+    $outfile="out_".$label;
+
+    $resultfolder="risultati";
+    $resultnew="risultati_".$label;
+
+    print STDERR ">calculation for $label\n";
+
+    $_=$input;
+    s/zeta/$Z/g;
+    s/enne/$N/g;
+
+    if($docalc){ # do the actual calculation:
+		open(OUT,">$infile") || die "Cannot create $infile\n";
+		print OUT;
+		close(OUT);
+
+		`$bindir$code < $infile > $outfile`;
+
+		`rm -fr $resultnew`;
+		`mv -f $resultfolder $resultnew`;
+    }
+
+    if($doanal){
+
+		chomp($Etot=`awk '/E totale/{print \$3}' $resultnew/energia.dat`);
+		chomp($E1sU=`awk '/n= 1 l= 0 n_contenuti= . spin= 0.5/{print \$10}' $resultnew/autovalori_f.dat`);
+		chomp($E1sD=`awk '/n= 1 l= 0 n_contenuti= . spin= -0.5/{print \$10}' $resultnew/autovalori_f.dat`);
+		chomp($E2sU=`awk '/n= 2 l= 0 n_contenuti= . spin= 0.5/{print \$10}' $resultnew/autovalori_f.dat`);
+		chomp($E2sD=`awk '/n= 2 l= 0 n_contenuti= . spin= -0.5/{print \$10}' $resultnew/autovalori_f.dat`);
+		chomp($E2pU=`awk '/n= 2 l= 1 n_contenuti= . spin= 0.5/{print \$10}' $resultnew/autovalori_f.dat`);
+		chomp($E2pD=`awk '/n= 2 l= 1 n_contenuti= . spin= -0.5/{print \$10}' $resultnew/autovalori_f.dat`);
+		print VCM $Z,"\t",$N,"\t",$Etot,"\t",$E1sU,"\t",$E1sD,"\t",$E2sU,"\t",$E2sD,"\t",$E2pU,"\t",$E2pD,"\n";
+
+    }
+}

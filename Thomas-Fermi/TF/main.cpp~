@@ -1,0 +1,204 @@
+#include <iostream>
+#include <cmath>
+#include <fstream>
+#include "integrale.h" 
+#include "funzioneBase.h" 
+#include "integranda.h"
+#include "funzioni.h"
+#include "main.h"
+#include <vector>
+#include "nr.h"
+#include <iomanip>
+
+using namespace std;
+
+
+int main(){
+  int counter=0;
+  Inizi();
+  
+  cout << "Z " << Z << endl; 
+  double NelInf=Nel(dati.muInf);
+  cout << "muInf " << dati.muInf << " NelInf " << NelInf << endl;
+  PrintEnergy();
+  double NelSup=Nel(dati.muSup);  
+  cout << "muSup " << dati.muSup << " NelSup " << NelSup << endl;
+  PrintEnergy();
+  
+
+/*
+ ofstream s;
+ s.open("mu-particelle");
+ s << "Particelle imposte" << " "<< " Particelle calcolate " << " "<< " Potenziale chimico " << endl; 
+
+ for(int j=Z-4; j<Z+2; j++){
+  if(j>0){
+    cost=j;
+    int root=Bisezione();
+    cout << cost << " " << particelle[root] << " " << pc[root] << endl;
+   s << cost << " "<< particelle[root] << " "<<  pc[root] << endl;  
+  }
+ }
+  
+ s.close();
+*/
+
+return 0;
+}
+
+
+void PrintEnergy(){
+ double ekin=EKin();
+ double ep=EPot();
+ double EHa=PotEl();
+
+
+  cout << "Ekin     " << ekin << endl;
+  cout << "PotExt   " << ep << endl;
+  cout << "Hartree  " << EHa << endl;
+  cout << "ETot     " << ekin+ep+EHa << endl;
+}
+
+double Nel(double mu){
+ 
+    double eps;
+    ofstream fileout;
+    fileout.open("Densità");
+    int iter=0;
+    do{
+    iter++;
+    fileout << endl << "# " << iter << endl;
+     sum=0.;
+     for(int i=0; i<dim; i++){
+       double b=A*(mu-potExt(X_fissate[i],Z,rn)-dati.corrFactor*Hart.trapezi(X_fissate,nOld,dim,X_fissate[i]));
+       if(b>0){
+         nNew[i]=2*C*(pow(b,1.5));
+         } else {
+           nNew[i]=0;
+         }
+      }
+      eps=Distanza()/(double)dim;
+      cerr << iter << " Distanza " << eps << " Nel " << Particles() <<endl; //Commentare quando tutto funziona.
+      for(int i=0; i<dim; i++){
+       nOld[i]=0.9*nOld[i]+0.1*nNew[i]; //Il mixing va bene anche da quando b<0.
+       fileout << X_fissate[i] << " " << nOld[i]*X_fissate[i]*X_fissate[i] << " " << nNew[i]*X_fissate[i]*X_fissate[i] << endl;
+       //La nuova densità diventa quella vecchia
+      }
+      //   PrintEnergy();
+    } while(eps > dati.toll); //Metti nel file input.
+    fileout.close();
+
+return Particles();
+}
+
+
+double EKin(){ //Calcola il numero di particelle della nuova funzione densità.
+  double h=(3./5.)*0.5*pow(C,-2./3.)*4*M_PI;
+  double inte=0.;
+  double FT=5./3.;
+  for(int i=0; i<dim-1; i++) 
+    inte += (pow(nNew[i+1],FT)*pow(X_fissate[i+1],2)+pow(nNew[i],FT)*pow(X_fissate[i],2))*diff[i];
+
+  return (inte/2.)*h;
+}
+
+double EPot(){
+  double inte=0.;
+  for(int i=0; i<dim-1; i++) 
+   inte += (potExt(X_fissate[i+1],Z,rn)*nNew[i+1]*pow(X_fissate[i+1],2)+potExt(X_fissate[i],Z,rn)*nNew[i]*pow(X_fissate[i],2))*diff[i];
+
+  return 4*M_PI*(inte/2.);
+}
+
+double PotEl(){
+  double sum=0.;
+  double* inte1_g=new double[dim];
+  double* inte2_g=new double[dim];
+ 
+
+//Primo intregrale.
+  for(int k=0; k<dim; k++){ 
+    sum=0.;
+    for(int j=0; j<k; j++) sum += (pow(X_fissate[j+1],2)*nNew[j+1]+pow(X_fissate[j],2)*nNew[j])*diff[j];
+    inte1_g[k]=sum/2.;
+    //cout << "inte1_g[k] " <<  inte1_g[k] << endl;
+  } 
+
+  double inte1=0.;
+  for(int j=0; j<dim-1; j++){ 
+    inte1 += (X_fissate[j+1]*nNew[j+1]*inte1_g[j+1]+X_fissate[j]*nNew[j]*inte1_g[j])*diff[j]; 
+   // cout << "inte1" << inte1 << endl;
+   }
+
+//Secondo integrale.
+ sum=0.;
+ for(int k=0; k<dim; k++){ 
+   sum=0.;
+    for(int j=k; j<dim-1; j++) sum += (X_fissate[j+1]*nNew[j+1]+X_fissate[j]*nNew[j])*diff[j];
+    inte2_g[k]=sum/2.;
+     //cout << "inte2_g[k] " << inte2_g[k] << endl;
+   }
+ 
+  
+   double inte2=0.;
+   for(int j=0; j<dim-1; j++){ 
+    inte2 += (pow(X_fissate[j+1],2)*nNew[j+1]*inte2_g[j+1]+pow(X_fissate[j],2)*nNew[j]*inte2_g[j])*diff[j]; 
+    //cout << "inte2 " << inte2 << endl; 
+   }
+
+
+   return (dati.corrFactor*8*pow(M_PI,2)*(inte1+inte2))/2.;    
+}
+
+double potExt(double r, int Z, double rn){ //Nucleo non puntiforme.
+  if(r < rn){
+    return -(3.*Z)/(2.*rn)+(Z*pow(r,2))/(2*pow(rn,3));
+  } else {
+     if( r < dati.rSfera){
+      return -Z/r; 
+     } else {
+       return -Z/r+0.001*pow(r-dati.rSfera,2); //Oltre ad un certo r, aggiungo una parabola.
+    }
+  }
+}
+
+void Inizi(){
+  for(int i=0; i<dim; i++) nOld[i]=exp(-X_fissate[i]);
+  for(int i=0; i<dim-1; i++) diff[i]=X_fissate[i+1]-X_fissate[i];
+}
+
+double Particles(){ //Calcola il numero di particelle della nuova funzione densità.
+  part=0.;
+  for(int i=0; i<dim-1; i++) 
+    part+=(nNew[i+1]*pow(X_fissate[i+1],2)+nNew[i]*pow(X_fissate[i],2))*(diff[i]);
+
+  return part*((4*M_PI)/2.);
+}
+
+double Distanza(){
+  sum=0.;
+  for(int i=0; i<dim; i++) sum+=pow(pow(X_fissate[i],2)*(nNew[i]-nOld[i]),2);
+
+  return sqrt(sum);
+}
+
+void Print(){
+  fileout1.open("P(r)Fin");
+  fileout2.open("DensityFin");
+  fileout3.open("ScalaLog");
+
+  for(int i=0; i<dim; i++){
+    fileout1 << X_fissate[i] << " " << nNew[i]*pow(X_fissate[i],2) << endl;
+    fileout2 << X_fissate[i] << " " << nNew[i] << endl;
+    fileout3 << X_fissate[i] << " " << log(nNew[i]) << endl;
+  }
+  
+  cout << "Particelle finali: " << Particles() << endl;
+
+  fileout1.close();
+  fileout2.close();
+  fileout3.close();
+}
+
+
+
