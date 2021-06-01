@@ -1,0 +1,21 @@
+Ecco l'elenco degli autovalori
+n= 1 l= 0 n_contenuti= 1 spin= 0.5	E= -55.15806178
+n= 1 l= 0 n_contenuti= 1 spin= -0.5	E= -55.15806178
+n= 2 l= 0 n_contenuti= 1 spin= 0.5	E= -3.934765636
+n= 2 l= 0 n_contenuti= 1 spin= -0.5	E= -3.934765636
+n= 2 l= 1 n_contenuti= 3 spin= -0.5	E= -2.563524038
+n= 2 l= 1 n_contenuti= 3 spin= 0.5	E= -2.563524038
+n= 3 l= 0 n_contenuti= 1 spin= -0.5	E= -0.2869075226
+n= 3 l= 0 n_contenuti= 1 spin= 0.5	E= -0.2869075226
+n= 3 l= 1 n_contenuti= 1 spin= -0.5	E= -0.1025664505
+n= 3 l= 1 n_contenuti= 0 spin= 0.5	E= -0.1025664505
+n= 4 l= 0 n_contenuti= 0 spin= 0.5	E= -0.01109447965
+n= 4 l= 0 n_contenuti= 0 spin= -0.5	E= -0.01109447965
+n= 4 l= 1 n_contenuti= 0 spin= -0.5	E= 0.01334000053
+n= 4 l= 1 n_contenuti= 0 spin= 0.5	E= 0.01334000053
+n= 3 l= 2 n_contenuti= 0 spin= -0.5	E= 0.02331223325
+n= 3 l= 2 n_contenuti= 0 spin= 0.5	E= 0.02331223325
+n= 4 l= 3 n_contenuti= 0 spin= 0.5	E= 0.05202961439
+n= 4 l= 3 n_contenuti= 0 spin= -0.5	E= 0.05202961439
+n= 4 l= 2 n_contenuti= 0 spin= -0.5	E= 0.06147485759
+n= 4 l= 2 n_contenuti= 0 spin= 0.5	E= 0.06147485759
